@@ -1,4 +1,4 @@
-// daycount implements the most useful day counting conventions in finance
+// Package daycount implements the most useful day counting conventions in finance
 package daycount
 
 import (
@@ -94,7 +94,7 @@ var conventions = map[string]struct {
 // Implemented returns a slice of strings of the implemented day count conventions
 func Implemented() []string {
 	list := []string{}
-	for conv, _ := range conventions {
+	for conv := range conventions {
 		list = append(list, conv)
 	}
 	return list
