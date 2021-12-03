@@ -81,6 +81,14 @@ var conventions = map[string]struct {
 		},
 		Denominator: func(d data) float64 { return 360.0 },
 	},
+	"ACT360": {
+		Numerator: func(d data) float64 {
+			return d.Date2.Sub(d.Date1).Hours() / 24.0
+		},
+		Denominator: func(d data) float64 {
+			return 360.0
+		},
+	},
 	"ACTACT": {
 		Numerator: func(d data) float64 {
 			return d.Date2.Sub(d.Date1).Hours() / 24.0

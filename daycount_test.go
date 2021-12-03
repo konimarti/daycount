@@ -50,7 +50,7 @@ func TestDayCountFraction(t *testing.T) {
 	}
 
 	// run tests
-	tolerance := 0.0001
+	tolerance := 0.00001
 	for nr, test := range testData {
 		for i, conv := range test.Conventions {
 			frac := daycount.Fraction(test.Date1, test.Date2, test.Date3, test.Compounding, conv)
