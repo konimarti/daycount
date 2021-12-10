@@ -51,11 +51,10 @@ func Implemented() []string {
 	return list
 }
 
-// Fraction returns the fraction of coupon that has been accrued between date1 and date2
+// Fraction returns the fraction of coupon that has been accrued between date1 and date3
 // date1: last coupon payment, starting date for interest accrual
 // date2: date through which interest rate is being accrued (settlement dates for bonds)
 // date3: next coupon payment
-// compounding: compounding frequency per year
 func Fraction(date1, date2, date3 time.Time, basis string) (float64, error) {
 
 	// use default if basis is empty
