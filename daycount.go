@@ -6,97 +6,39 @@ import (
 	"time"
 )
 
-// data is an internal data structure to simplify the function calls
-type data struct {
-	Date1       time.Time
-	Date2       time.Time
-	Date3       time.Time
-	Compounding int
-}
-
 // Default day count convention
 var Default string = "30E360"
+
+type DateDiffFunc func(date1, date2 time.Time) float64
 
 // conventions is a map strcuture that contains the information
 // to calculate the days between two dates and converts it into
 // a day count fraction.
 // https://www.isda.org/2008/12/22/30-360-day-count-conventions
 var conventions = map[string]struct {
-	Numerator   func(d data) float64
-	Denominator func(d data) float64
+	Numerator   DateDiffFunc
+	Denominator DateDiffFunc
 }{
 	// ISDA
 	"30E360": {
-		Numerator: func(d data) float64 {
-
-			day1, day2 := d.Date1.Day(), d.Date2.Day()
-			if day1 == 31 || isLastDayofFeb(d.Date1) {
-				day1 = 30
-			}
-			// FIXME: if date2 is last day of Feb, we should ensure that date2 is not termination date
-			if day2 == 31 || isLastDayofFeb(d.Date2) {
-				day2 = 30
-			}
-			return days30360(d.Date1, d.Date2, day1, day2)
-		},
-		Denominator: func(d data) float64 { return 360.0 },
+		Numerator:   days30e360,
+		Denominator: days30e360,
 	},
 	"EUROBOND": {
-		Numerator: func(d data) float64 {
-			day1, day2 := d.Date1.Day(), d.Date2.Day()
-			if day1 == 31 {
-				day1 = 30
-			}
-			if day2 == 31 {
-				day2 = 30
-			}
-			return days30360(d.Date1, d.Date2, day1, day2)
-
-		},
-		Denominator: func(d data) float64 { return 360.0 },
+		Numerator:   eurobond,
+		Denominator: eurobond,
 	},
-	// "30U360": {
-	// 	Numerator: func(d data) float64 {
-	// 		day1, day2 := d.Date1.Day(), d.Date2.Day()
-	// 		if day2 == 31 && day1 >= 30 {
-	// 			day2 = 30
-	// 		}
-	// 		if day1 == 31 {
-	// 			day1 = 30
-	// 		}
-	// 		return days30360(d.Date1, d.Date2, day1, day2)
-	// 	},
-	// 	Denominator: func(d data) float64 { return 360.0 },
-	// },
 	"BONDBASIS": {
-		Numerator: func(d data) float64 {
-			day1, day2 := d.Date1.Day(), d.Date2.Day()
-			if day1 == 31 {
-				day1 = 30
-			}
-			if day2 == 31 && day1 >= 30 {
-				day2 = 30
-			}
-			return days30360(d.Date1, d.Date2, day1, day2)
-
-		},
-		Denominator: func(d data) float64 { return 360.0 },
+		Numerator:   bondbasis,
+		Denominator: bondbasis,
 	},
 	"ACT360": {
-		Numerator: func(d data) float64 {
-			return d.Date2.Sub(d.Date1).Hours() / 24.0
-		},
-		Denominator: func(d data) float64 {
-			return 360.0
-		},
+		Numerator:   act,
+		Denominator: days30e360,
 	},
 	"ACTACT": {
-		Numerator: func(d data) float64 {
-			return d.Date2.Sub(d.Date1).Hours() / 24.0
-		},
-		Denominator: func(d data) float64 {
-			return float64(d.Compounding) * d.Date3.Sub(d.Date1).Hours() / 24.0
-		},
+		Numerator:   act,
+		Denominator: act,
 	},
 }
 
@@ -114,15 +56,7 @@ func Implemented() []string {
 // date2: date through which interest rate is being accrued (settlement dates for bonds)
 // date3: next coupon payment
 // compounding: compounding frequency per year
-func Fraction(date1, date2, date3 time.Time, compounding int, basis string) (float64, error) {
-
-	// create data struct
-	d := data{
-		date1,
-		date2,
-		date3,
-		compounding,
-	}
+func Fraction(date1, date2, date3 time.Time, basis string) (float64, error) {
 
 	// use default if basis is empty
 	if basis == "" {
@@ -136,19 +70,11 @@ func Fraction(date1, date2, date3 time.Time, compounding int, basis string) (flo
 	}
 
 	// calculate day count fraction
-	return conv.Numerator(d) / conv.Denominator(d), nil
+	return conv.Numerator(date1, date2) / conv.Denominator(date1, date3), nil
 }
 
 // Days counts the dates between two dates
 func Days(date1, date2 time.Time, basis string) (float64, error) {
-
-	// create data struct
-	d := data{
-		date1,
-		date2,
-		time.Time{},
-		1,
-	}
 
 	// use default if basis is empty
 	if basis == "" {
@@ -162,7 +88,7 @@ func Days(date1, date2 time.Time, basis string) (float64, error) {
 	}
 
 	// calculate days
-	return conv.Numerator(d), nil
+	return conv.Numerator(date1, date2), nil
 }
 
 // days30360 is the helper function to calculate the days between two dates for the 30/360 methods
@@ -178,4 +104,40 @@ func isLastDayofFeb(d time.Time) bool {
 		}
 	}
 	return false
+}
+
+func days30e360(date1, date2 time.Time) float64 {
+	day1, day2 := date1.Day(), date2.Day()
+	if day1 == 31 || isLastDayofFeb(date1) {
+		day1 = 30
+	}
+	// FIXME: if date2 is last day of Feb, we should ensure that date2 is not termination date
+	if day2 == 31 || isLastDayofFeb(date2) {
+		day2 = 30
+	}
+	return days30360(date1, date2, day1, day2)
+}
+
+func eurobond(date1, date2 time.Time) float64 {
+	day1, day2 := date1.Day(), date2.Day()
+	if day1 == 31 {
+		day1 = 30
+	}
+	if day2 == 31 {
+		day2 = 30
+	}
+	return days30360(date1, date2, day1, day2)
+}
+func bondbasis(date1, date2 time.Time) float64 {
+	day1, day2 := date1.Day(), date2.Day()
+	if day1 == 31 {
+		day1 = 30
+	}
+	if day2 == 31 && day1 >= 30 {
+		day2 = 30
+	}
+	return days30360(date1, date2, day1, day2)
+}
+func act(date1, date2 time.Time) float64 {
+	return date2.Sub(date1).Hours() / 24.0
 }
