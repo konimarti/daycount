@@ -2,6 +2,7 @@
 package daycount
 
 import (
+	"fmt"
 	"time"
 )
 
@@ -113,7 +114,7 @@ func Implemented() []string {
 // date2: date through which interest rate is being accrued (settlement dates for bonds)
 // date3: next coupon payment
 // compounding: compounding frequency per year
-func Fraction(date1, date2, date3 time.Time, compounding int, basis string) float64 {
+func Fraction(date1, date2, date3 time.Time, compounding int, basis string) (float64, error) {
 
 	// create data struct
 	d := data{
@@ -131,15 +132,15 @@ func Fraction(date1, date2, date3 time.Time, compounding int, basis string) floa
 	// look for convention
 	conv, ok := conventions[basis]
 	if !ok {
-		return 0.0
+		return 0.0, fmt.Errorf("day count convention %s not implemented", basis)
 	}
 
 	// calculate day count fraction
-	return conv.Numerator(d) / conv.Denominator(d)
+	return conv.Numerator(d) / conv.Denominator(d), nil
 }
 
 // Days counts the dates between two dates
-func Days(date1, date2 time.Time, basis string) float64 {
+func Days(date1, date2 time.Time, basis string) (float64, error) {
 
 	// create data struct
 	d := data{
@@ -157,11 +158,11 @@ func Days(date1, date2 time.Time, basis string) float64 {
 	// look for convention
 	conv, ok := conventions[basis]
 	if !ok {
-		return 0.0
+		return 0.0, fmt.Errorf("day count convention %s not implemented", basis)
 	}
 
 	// calculate days
-	return conv.Numerator(d)
+	return conv.Numerator(d), nil
 }
 
 // days30360 is the helper function to calculate the days between two dates for the 30/360 methods

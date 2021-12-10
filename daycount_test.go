@@ -53,11 +53,21 @@ func TestDayCountFraction(t *testing.T) {
 	tolerance := 0.00001
 	for nr, test := range testData {
 		for i, conv := range test.Conventions {
-			frac := daycount.Fraction(test.Date1, test.Date2, test.Date3, test.Compounding, conv)
-			if math.Abs(frac-test.Expected[i]) > tolerance {
+			frac, err := daycount.Fraction(test.Date1, test.Date2, test.Date3, test.Compounding, conv)
+			if math.Abs(frac-test.Expected[i]) > tolerance || err != nil {
 				t.Errorf("test %d for %s failed, got: %f, want: %f\n", nr, conv, frac, test.Expected[i])
 				fmt.Println(test)
 			}
 		}
+	}
+}
+
+func TestDayCountFraction_MissingConvention(t *testing.T) {
+	date1 := time.Date(2008, 02, 29, 0, 0, 0, 0, time.UTC)
+	date2 := time.Date(2008, 8, 31, 0, 0, 0, 0, time.UTC)
+	date3 := time.Time{}
+	_, err := daycount.Fraction(date1, date2, date3, 1, "THISISNOTIMPLEMENTED")
+	if err == nil {
+		t.Errorf("day count fraction should return an error when basis is not implemented")
 	}
 }
