@@ -9,15 +9,15 @@ import (
 // Default day count convention
 var Default string = "30E360"
 
-type DateDiffFunc func(date1, date2 time.Time) float64
+type dateDiffFunc func(date1, date2 time.Time) float64
 
 // conventions is a map strcuture that contains the information
 // to calculate the days between two dates and converts it into
 // a day count fraction.
 // https://www.isda.org/2008/12/22/30-360-day-count-conventions
 var conventions = map[string]struct {
-	Numerator   DateDiffFunc
-	Denominator DateDiffFunc
+	Numerator   dateDiffFunc
+	Denominator dateDiffFunc
 }{
 	// ISDA
 	"30E360": {
